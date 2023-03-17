@@ -1,0 +1,39 @@
+{
+  "name": "pgtyped-model",
+  "version": "0.1.0",
+  "description": "",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "dev": "pgtyped -w -c pgtyped.config.json",
+    "build": "tsc --outDir=dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Joseph Shaferman <joseph.shaferman@gmail.com>",
+  "license": "MIT",
+  "engines": {
+    "npm": "Please use Yarn instead",
+    "yarn": ">= 1.22.19"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@pgtyped/cli": "^2.1.0",
+    "@pgtyped/runtime": "^2.1.0",
+    "@types/lodash": "^4.14.191",
+    "@types/pg": "^8.6.6",
+    "pg": "^8.10.0",
+    "prettier": "^2.8.4",
+    "typescript": "^4.9.5"
+  },
+  "prettier": {
+    "trailingComma": "all",
+    "bracketSpacing": false,
+    "tabWidth": 2,
+    "semi": false,
+    "singleQuote": false,
+    "arrowParens": "always"
+  }
+}
