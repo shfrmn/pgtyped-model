@@ -5,17 +5,14 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
+    "postinstall": "yarn build",
     "dev": "pgtyped -w -c pgtyped.config.json",
-    "build": "tsc --outDir=dist",
+    "build": "tsc --outDir dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "Joseph Shaferman <joseph.shaferman@gmail.com>",
   "license": "MIT",
-  "engines": {
-    "npm": "Please use Yarn instead",
-    "yarn": ">= 1.22.19"
-  },
   "dependencies": {
     "lodash": "^4.17.21"
   },
