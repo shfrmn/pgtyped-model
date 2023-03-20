@@ -1,25 +1,113 @@
 import {IDatabaseConnection} from "@pgtyped/runtime/lib/tag"
-import {OnAnyQuery, MapRows} from "./Hook"
-import {AnyPgTypedModule, ParamType, ResultType} from "./PgTyped"
-import {QueryFunction, wrapQuery} from "./Query"
+import {AnyPgTypedModule, AnyRowType, ParamType, RowType} from "./PgTyped"
+import {CaseAware, mapKeysToCamelCase} from "./Camel"
+import {OnAnyQuery, QueryFunction} from "./Query"
+import {CollectFunction} from "./Collect"
 
 /**
  * Type of the model inferred from PgTyped generated module
  */
-type Model<QM extends AnyPgTypedModule, T> = {
-  [QueryName in keyof QM]: QueryFunction<
-    ParamType<QM[QueryName]>,
-    ResultType<QM[QueryName], T>
+type Model<M, DefaultResult, Override> = {
+  [K in keyof M]: QueryFunction<
+    ParamType<M[K]>,
+    K extends keyof Override
+      ? Override[K] extends (...args: any[]) => any
+        ? ReturnType<Override[K]>
+        : never
+      : DefaultResult
   >
+}
+
+type PgTypedModel<QM> = {
+  [K in keyof QM]: RowType<QM[K]>
 }
 
 /**
  *
  */
-interface CreateModelOptions<
+function fromPgTypedModule<QM extends AnyPgTypedModule>(
+  queryModule: QM,
+): Model<QM, never, PgTypedModel<QM>> {
+  const model: Record<string, any> = {}
+  for (const queryName in queryModule) {
+    model[queryName] = queryModule[queryName].run
+  }
+  return model as Model<QM, never, PgTypedModel<QM>>
+}
+
+/**
+ *
+ */
+type ExtendedModel<M, E> = {
+  [K in keyof M | keyof E]: K extends keyof M & keyof E
+    ? M[K] extends QueryFunction<infer P, any>
+      ? E[K] extends (...args: any[]) => any
+        ? QueryFunction<P, ReturnType<E[K]>>
+        : "woosh"
+      : "boom"
+    : K extends keyof M
+    ? M[K]
+    : never
+}
+
+/**
+ *
+ */
+function extendModel<M extends Model<any, any, any>, E>(
+  model: M,
+  extendModel: (results: any, queryName: keyof M, params: any) => any,
+): ExtendedModel<M, E> {
+  const extendedModel = {} as Record<string, any>
+  for (const queryName in model) {
+    extendedModel[queryName] = (params: any) => {
+      return model[queryName](params).then((results) => {
+        return extendModel(results, queryName, params)
+      })
+    }
+  }
+  return extendedModel as ExtendedModel<M, E>
+}
+
+/**
+ *
+ */
+type ExtendOptions<M, T> = Partial<{
+  [K in keyof M]: (results: T) => any
+}>
+
+/**
+ *
+ */
+type ExtendableModel<M, T, Override> = Model<M, T, Override> & {
+  extend: <O extends ExtendOptions<M, T>>(
+    options: O,
+  ) => ExtendedModel<Model<M, T, Override>, O>
+}
+
+/**
+ *
+ */
+type CollectDefault<
+  QM extends AnyPgTypedModule,
+  IsCamelCase,
+  T,
+> = CollectFunction<CaseAware<AnyRowType<QM>, IsCamelCase>[], T>
+
+/**
+ *
+ */
+type OverrideOptions<QM extends AnyPgTypedModule, IsCamelCase> = Partial<{
+  [QN in keyof QM]: (rows: CaseAware<RowType<QM[QN]>, IsCamelCase>[]) => any
+}>
+
+/**
+ *
+ */
+export interface CreateModelOptions<
   QM extends AnyPgTypedModule,
   IsCamelCase extends boolean,
-  T,
+  CR,
+  CollectOverride,
 > {
   /**
    * PostgreSQL connection (`pool` or `client` from `pg` package)
@@ -47,62 +135,70 @@ interface CreateModelOptions<
   camelCaseColumnNames?: IsCamelCase
 
   /**
-   * Optional transformer function to be applied to each row.
    *
-   * ```typescript
-   * // Example: convert each row to a class instance
-   * mapRows: (postRow) => new Post(postRow)
-   * ```
-   *
-   * __Attention:__
-   * Only pass pure functions to `mapRows`. For any side
-   * effects (e.g. logging) use `onQuery` hook instead.
    */
-  mapRows?: MapRows<QM, T, IsCamelCase>
+  collectDefault?: CollectDefault<QM, IsCamelCase, CR>
+
+  /**
+   *
+   */
+  collect?: CollectOverride
 
   /**
    * Optional function to be called after each successful query.
-   * ```typescript
-   * // Example: log each query
-   * onQuery: ({queryName, params, rows, mappedRows}) => {
-   *   console.log(`${queryName}(${JSON.stringify(params)}) -> ${rows.length} rows`)
-   * }
-   * ```
    *
    * __Attention:__
    * This hook is not meant for error handling. Please refer to
    * `pg` package [documentation](https://node-postgres.com/apis/pool#error)
    * for more details on error handling.
+   *
+   * Example:
+   * ```typescript
+   * onQuery: ({queryName, params, rows, results}) => {
+   *   console.log(`${queryName}(${JSON.stringify(params)}) -> ${rows.length} rows`)
+   * }
+   * ```
    */
-  onQuery?: OnAnyQuery<QM, T>
+  onQuery?: OnAnyQuery<QM>
 }
 
 /**
- * Creates a model from a PgTyped generated module
+ *
  */
 export function createModel<
   QM extends AnyPgTypedModule,
-  IsCamelCase extends boolean = false,
-  T = "",
->(options: CreateModelOptions<QM, IsCamelCase, T>): Model<QM, T> {
-  const {
-    queries,
-    connection,
-    camelCaseColumnNames = false,
-    onQuery,
-    mapRows,
-  } = options
-  const model = {} as Record<keyof typeof queries, QueryFunction<any, any>>
-  for (const queryName in queries) {
-    const query = queries[queryName]
-    model[queryName] = wrapQuery({
-      connection,
-      query,
-      queryName,
-      camelCaseColumnNames,
-      onQuery,
-      mapRows,
+  IsCamelCase extends boolean,
+  CR,
+  Override extends OverrideOptions<QM, IsCamelCase>,
+>(
+  options: CreateModelOptions<QM, IsCamelCase, CR, Override>,
+): ExtendableModel<QM, CR, Override> {
+  const baseModel = fromPgTypedModule(options.queries)
+  const model = extendModel(
+    baseModel,
+    (rows, queryName: string, params: any) => {
+      const caseAwareRows = options.camelCaseColumnNames
+        ? rows.map(mapKeysToCamelCase)
+        : rows
+      const collect = options.collect?.[queryName] || options.collectDefault
+      const result = collect ? collect(caseAwareRows) : caseAwareRows
+      options.onQuery?.({
+        queryName,
+        params,
+        rows,
+        result,
+      })
+      return result
+    },
+  ) as Model<QM, CR, Override>
+
+  function extend<O extends ExtendOptions<QM, CR>>(
+    options: O,
+  ): ExtendedModel<Model<QM, CR, Override>, O> {
+    return extendModel<Model<QM, CR, Override>, O>(model, (rows, queryName) => {
+      return options[queryName]?.(rows) || rows
     })
   }
-  return model as Model<QM, T>
+
+  return {...model, extend}
 }

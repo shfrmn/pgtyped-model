@@ -19,6 +19,14 @@ export type CamelCaseKeys<O extends Record<string, any>> = {
 /**
  *
  */
+export type CaseAware<
+  T extends Record<string, any>,
+  IsCamelCase,
+> = IsCamelCase extends true ? CamelCaseKeys<T> : T
+
+/**
+ *
+ */
 export function mapKeysToCamelCase<T extends object>(obj: T): CamelCaseKeys<T> {
   return mapKeys(obj, (_, k) => toCamelCase(k)) as CamelCaseKeys<T>
 }
