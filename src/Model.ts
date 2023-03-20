@@ -1,5 +1,11 @@
 import {IDatabaseConnection} from "@pgtyped/runtime/lib/tag"
-import {AnyPgTypedModule, AnyRowType, ParamType, RowType} from "./PgTyped"
+import {
+  AnyPgTypedModule,
+  AnyRowType,
+  ParamType,
+  ResultType,
+  RowType,
+} from "./PgTyped"
 import {CaseAware, mapKeysToCamelCase} from "./Camel"
 import {OnAnyQuery, QueryFunction} from "./Query"
 import {CollectFunction} from "./Collect"
@@ -14,6 +20,10 @@ type Model<M, DefaultResult, Override> = {
       ? Override[K] extends (...args: any[]) => any
         ? ReturnType<Override[K]>
         : never
+      : unknown extends DefaultResult
+      ? ResultType<M[K]>
+      : RowType<M[K]> extends void
+      ? void
       : DefaultResult
   >
 }
@@ -71,17 +81,19 @@ function extendModel<M extends Model<any, any, any>, E>(
 /**
  *
  */
-type ExtendOptions<M, T> = Partial<{
-  [K in keyof M]: (results: T) => any
+type ExtendOptions<M extends Model<any, any, any>> = Partial<{
+  [K in keyof M]: (
+    results: M[K] extends QueryFunction<any, infer T> ? T : never,
+  ) => any
 }>
 
 /**
  *
  */
-type ExtendableModel<M, T, Override> = Model<M, T, Override> & {
-  extend: <O extends ExtendOptions<M, T>>(
+type ExtendableModel<M, T, E> = Model<M, T, E> & {
+  extend: <O extends ExtendOptions<Model<M, T, E>>>(
     options: O,
-  ) => ExtendedModel<Model<M, T, Override>, O>
+  ) => ExtendedModel<Model<M, T, E>, O>
 }
 
 /**
@@ -169,7 +181,7 @@ export function createModel<
   QM extends AnyPgTypedModule,
   IsCamelCase extends boolean,
   CR,
-  Override extends OverrideOptions<QM, IsCamelCase>,
+  Override extends OverrideOptions<QM, IsCamelCase> = {},
 >(
   options: CreateModelOptions<QM, IsCamelCase, CR, Override>,
 ): ExtendableModel<QM, CR, Override> {
@@ -192,7 +204,7 @@ export function createModel<
     },
   ) as Model<QM, CR, Override>
 
-  function extend<O extends ExtendOptions<QM, CR>>(
+  function extend<O extends ExtendOptions<Model<QM, CR, Override>>>(
     options: O,
   ): ExtendedModel<Model<QM, CR, Override>, O> {
     return extendModel<Model<QM, CR, Override>, O>(model, (rows, queryName) => {

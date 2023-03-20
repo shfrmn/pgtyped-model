@@ -23,6 +23,11 @@ export type ParamType<Q> = Q extends PreparedQuery<infer P, any> ? P : never
 export type RowType<Q> = Q extends PreparedQuery<any, infer R> ? R : never
 
 /**
+ *
+ */
+export type ResultType<Q> = RowType<Q> extends void ? void : RowType<Q>[]
+
+/**
  * Infers the union row type of a query module
  */
 export type AnyRowType<QM> = NonVoid<RowType<QM[keyof QM]>>
