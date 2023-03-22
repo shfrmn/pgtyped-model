@@ -1,6 +1,6 @@
 import {IDatabaseConnection} from "@pgtyped/runtime/lib/tag"
 import {AnyPgTypedModule, AnyRowType, ParamType, RowType} from "./PgTyped"
-import {CaseAware, mapKeysToCamelCase} from "./Camel"
+import {CaseAware, mapKeysToCamelCase} from "./CaseAware"
 import {MapQueryFunction, OnAnyQuery, QueryFunction} from "./Query"
 import {CollectFunction, CollectResult} from "./Collect"
 
@@ -45,10 +45,13 @@ type FromPgTyped<QueryModule> = {
  */
 function fromPgTypedModule<QueryModule extends AnyPgTypedModule>(
   queryModule: QueryModule,
+  connection: IDatabaseConnection,
 ): FromPgTyped<QueryModule> {
   const model: Record<string, any> = {}
   for (const queryName in queryModule) {
-    model[queryName] = queryModule[queryName].run
+    model[queryName] = (params: any) => {
+      return queryModule[queryName].run(params, connection)
+    }
   }
   return model as FromPgTyped<QueryModule>
 }
@@ -208,7 +211,7 @@ export function createModel<
     CollectOverride
   >,
 ): ExtendableModel<M> {
-  const baseModel = fromPgTypedModule(options.queries)
+  const baseModel = fromPgTypedModule(options.queries, options.connection)
   const model = extendModel(
     baseModel,
     (rows, queryName: string, params: any) => {
