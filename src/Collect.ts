@@ -16,6 +16,13 @@ type ObjectKey<T> = T extends string | number | symbol
 export type CollectFunction<R, T> = (results: R) => T
 
 /**
+ *
+ */
+export type CollectResult<T> = T extends CollectFunction<any, infer T>
+  ? T
+  : "CollectResult<T ∉ CollectFunction>"
+
+/**
  * Produces a collect function that returns a single result item,
  * located at the specified position in the array.
  * If no position is specified, the function will return the first item.

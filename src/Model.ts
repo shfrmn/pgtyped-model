@@ -1,69 +1,73 @@
 import {IDatabaseConnection} from "@pgtyped/runtime/lib/tag"
-import {
-  AnyPgTypedModule,
-  AnyRowType,
-  ParamType,
-  ResultType,
-  RowType,
-} from "./PgTyped"
+import {AnyPgTypedModule, AnyRowType, ParamType, RowType} from "./PgTyped"
 import {CaseAware, mapKeysToCamelCase} from "./Camel"
-import {OnAnyQuery, QueryFunction} from "./Query"
-import {CollectFunction} from "./Collect"
+import {MapQueryFunction, OnAnyQuery, QueryFunction} from "./Query"
+import {CollectFunction, CollectResult} from "./Collect"
 
 /**
- * Type of the model inferred from PgTyped generated module
+ *
  */
-type Model<M, DefaultResult, Override> = {
-  [K in keyof M]: QueryFunction<
-    ParamType<M[K]>,
-    K extends keyof Override
-      ? Override[K] extends (...args: any[]) => any
-        ? ReturnType<Override[K]>
-        : never
-      : unknown extends DefaultResult
-      ? ResultType<M[K]>
-      : RowType<M[K]> extends void
+type AnyModel = Model<any, any, any>
+
+/**
+ * `Model` represents an object where keys are inferred from a
+ * PgTyped generated module and values are of type `QueryFunction`
+ */
+type Model<
+  M extends Model<any, any, any>,
+  DefaultCollectResult,
+  CollectOverride,
+> = {
+  [K in keyof M]: MapQueryFunction<
+    M[K],
+    K extends keyof CollectOverride
+      ? CollectResult<CollectOverride[K]>
+      : unknown extends DefaultCollectResult
+      ? CollectResult<M[K]>
+      : CollectResult<M[K]> extends Promise<void>
       ? void
-      : DefaultResult
+      : DefaultCollectResult
   >
 }
 
-type PgTypedModel<QM> = {
-  [K in keyof QM]: RowType<QM[K]>
+/**
+ * Converts PgTyped query module into `Model`
+ */
+type FromPgTyped<QueryModule> = {
+  [K in keyof QueryModule]: QueryFunction<
+    ParamType<QueryModule[K]>,
+    RowType<QueryModule[K]>
+  >
 }
 
 /**
  *
  */
-function fromPgTypedModule<QM extends AnyPgTypedModule>(
-  queryModule: QM,
-): Model<QM, never, PgTypedModel<QM>> {
+function fromPgTypedModule<QueryModule extends AnyPgTypedModule>(
+  queryModule: QueryModule,
+): FromPgTyped<QueryModule> {
   const model: Record<string, any> = {}
   for (const queryName in queryModule) {
     model[queryName] = queryModule[queryName].run
   }
-  return model as Model<QM, never, PgTypedModel<QM>>
+  return model as FromPgTyped<QueryModule>
 }
 
 /**
  *
  */
-type ExtendedModel<M, E> = {
+type ExtendedModel<M extends AnyModel, E extends ExtendOptions<M>> = {
   [K in keyof M | keyof E]: K extends keyof M & keyof E
-    ? M[K] extends QueryFunction<infer P, any>
-      ? E[K] extends (...args: any[]) => any
-        ? QueryFunction<P, ReturnType<E[K]>>
-        : "woosh"
-      : "boom"
+    ? MapQueryFunction<M[K], CollectResult<E[K]>>
     : K extends keyof M
     ? M[K]
-    : never
+    : "ExtendedModel<K ∉ keyof M>"
 }
 
 /**
  *
  */
-function extendModel<M extends Model<any, any, any>, E>(
+function extendModel<M extends AnyModel, E extends ExtendOptions<M>>(
   model: M,
   extendModel: (results: any, queryName: keyof M, params: any) => any,
 ): ExtendedModel<M, E> {
@@ -81,44 +85,49 @@ function extendModel<M extends Model<any, any, any>, E>(
 /**
  *
  */
-type ExtendOptions<M extends Model<any, any, any>> = Partial<{
+type ExtendOptions<M extends AnyModel> = Partial<{
   [K in keyof M]: (
-    results: M[K] extends QueryFunction<any, infer T> ? T : never,
+    results: M[K] extends QueryFunction<any, infer T>
+      ? T
+      : "ExtendOptions<M[K] ∉ QueryFunction>",
   ) => any
 }>
 
 /**
  *
  */
-type ExtendableModel<M, T, E> = Model<M, T, E> & {
-  extend: <O extends ExtendOptions<Model<M, T, E>>>(
-    options: O,
-  ) => ExtendedModel<Model<M, T, E>, O>
+type ExtendableModel<M extends AnyModel> = M & {
+  extend: <O extends ExtendOptions<M>>(options: O) => ExtendedModel<M, O>
 }
 
 /**
  *
  */
 type CollectDefault<
-  QM extends AnyPgTypedModule,
+  QueryModule extends AnyPgTypedModule,
   IsCamelCase,
   T,
-> = CollectFunction<CaseAware<AnyRowType<QM>, IsCamelCase>[], T>
+> = CollectFunction<CaseAware<AnyRowType<QueryModule>, IsCamelCase>[], T>
 
 /**
  *
  */
-type OverrideOptions<QM extends AnyPgTypedModule, IsCamelCase> = Partial<{
-  [QN in keyof QM]: (rows: CaseAware<RowType<QM[QN]>, IsCamelCase>[]) => any
+type OverrideOptions<
+  QueryModule extends AnyPgTypedModule,
+  IsCamelCase,
+> = Partial<{
+  [K in keyof QueryModule]: (
+    rows: CaseAware<RowType<QueryModule[K]>, IsCamelCase>[],
+  ) => any
 }>
 
 /**
  *
  */
 export interface CreateModelOptions<
-  QM extends AnyPgTypedModule,
+  QueryModule extends AnyPgTypedModule,
   IsCamelCase extends boolean,
-  CR,
+  DefaultCollectResult,
   CollectOverride,
 > {
   /**
@@ -134,7 +143,7 @@ export interface CreateModelOptions<
    * import * as queries from "./my-entity.queries.ts"
    * ```
    */
-  queries: QM
+  queries: QueryModule
 
   /**
    * Boolean flag indicating whether column names should be
@@ -144,12 +153,16 @@ export interface CreateModelOptions<
    * turned off__ in the PgTyped config file, since it only converts
    * the types and not the actual values.
    */
-  camelCaseColumnNames?: IsCamelCase
+  camelCaseColumnNames: IsCamelCase
 
   /**
    *
    */
-  collectDefault?: CollectDefault<QM, IsCamelCase, CR>
+  collectDefault?: CollectDefault<
+    QueryModule,
+    IsCamelCase,
+    DefaultCollectResult
+  >
 
   /**
    *
@@ -171,20 +184,30 @@ export interface CreateModelOptions<
    * }
    * ```
    */
-  onQuery?: OnAnyQuery<QM>
+  onQuery?: OnAnyQuery<QueryModule>
 }
 
 /**
  *
  */
 export function createModel<
-  QM extends AnyPgTypedModule,
+  QueryModule extends AnyPgTypedModule,
+  DefaultCollectResult,
   IsCamelCase extends boolean,
-  CR,
-  Override extends OverrideOptions<QM, IsCamelCase> = {},
+  CollectOverride extends OverrideOptions<QueryModule, IsCamelCase> = {},
+  M extends AnyModel = Model<
+    FromPgTyped<QueryModule>,
+    DefaultCollectResult,
+    CollectOverride
+  >,
 >(
-  options: CreateModelOptions<QM, IsCamelCase, CR, Override>,
-): ExtendableModel<QM, CR, Override> {
+  options: CreateModelOptions<
+    QueryModule,
+    IsCamelCase,
+    DefaultCollectResult,
+    CollectOverride
+  >,
+): ExtendableModel<M> {
   const baseModel = fromPgTypedModule(options.queries)
   const model = extendModel(
     baseModel,
@@ -202,12 +225,10 @@ export function createModel<
       })
       return result
     },
-  ) as Model<QM, CR, Override>
+  ) as unknown as M
 
-  function extend<O extends ExtendOptions<Model<QM, CR, Override>>>(
-    options: O,
-  ): ExtendedModel<Model<QM, CR, Override>, O> {
-    return extendModel<Model<QM, CR, Override>, O>(model, (rows, queryName) => {
+  function extend<O extends ExtendOptions<M>>(options: O): ExtendedModel<M, O> {
+    return extendModel(model, (rows, queryName) => {
       return options[queryName]?.(rows) || rows
     })
   }

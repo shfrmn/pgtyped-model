@@ -3,8 +3,8 @@ import {AnyPgTypedModule, AnyRowType, ParamType} from "./PgTyped"
 /**
  * Contains all information about a successful query
  */
-interface QuerySummary<P, R, T> {
-  queryName: string
+interface QuerySummary<N, P, R, T> {
+  queryName: N
   params: P
   rows: R[]
   result: T
@@ -13,14 +13,15 @@ interface QuerySummary<P, R, T> {
 /**
  * `onQuery` function type
  */
-type OnQuery<P, R, T> = (queryResult: QuerySummary<P, R, T>) => any
+type OnQuery<N, P, R, T> = (queryResult: QuerySummary<N, P, R, T>) => any
 
 /**
  *
  */
-export type OnAnyQuery<QM> = OnQuery<
-  QM extends AnyPgTypedModule ? ParamType<QM[keyof QM]> : never,
-  QM extends AnyPgTypedModule ? AnyRowType<QM> : never,
+export type OnAnyQuery<QueryModule extends AnyPgTypedModule> = OnQuery<
+  keyof QueryModule,
+  ParamType<QueryModule[keyof QueryModule]>,
+  AnyRowType<QueryModule>,
   any
 >
 
@@ -28,3 +29,13 @@ export type OnAnyQuery<QM> = OnQuery<
  *
  */
 export type QueryFunction<P, T> = (params: P) => Promise<T>
+
+/**
+ *
+ */
+export type MapQueryFunction<F, T> = QueryFunction<
+  F extends QueryFunction<infer P, any>
+    ? P
+    : "MapQueryFunction<F ∉ QueryFunction>",
+  T
+>

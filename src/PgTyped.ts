@@ -15,19 +15,20 @@ export type AnyPgTypedModule = {
 /**
  * Infers the type of query parameters from `PreparedQuery`
  */
-export type ParamType<Q> = Q extends PreparedQuery<infer P, any> ? P : never
+export type ParamType<Q> = Q extends PreparedQuery<infer P, any>
+  ? P
+  : "ParamType<Q ∉ PreparedQuery>"
 
 /**
  * Infers the row type from `PreparedQuery`
  */
-export type RowType<Q> = Q extends PreparedQuery<any, infer R> ? R : never
-
-/**
- *
- */
-export type ResultType<Q> = RowType<Q> extends void ? void : RowType<Q>[]
+export type RowType<Q> = Q extends PreparedQuery<any, infer R>
+  ? R
+  : "RowType<Q ∉ PreparedQuery>"
 
 /**
  * Infers the union row type of a query module
  */
-export type AnyRowType<QM> = NonVoid<RowType<QM[keyof QM]>>
+export type AnyRowType<QueryModule> = NonVoid<
+  RowType<QueryModule[keyof QueryModule]>
+>
