@@ -1,8 +1,8 @@
 import {
   createModel,
-  groupWith,
   mapWith,
-  nestWith,
+  groupWith,
+  indexWith,
   takeOne,
   QueryFunction,
 } from "../../src"
@@ -38,7 +38,7 @@ const snakeCaseDefaultOnly = createModel({
     })
   }),
 }).extend({
-  listAlbumsByArtistId: groupWith("artistId"),
+  listAlbumsByArtistId: indexWith("artistId"),
   listAlbumsWithTracks: takeOne(),
 })
 
@@ -51,7 +51,7 @@ const camelCaseDefaultOnly = createModel({
   camelCaseColumnNames: true,
   collectDefault: mapWith((row) => new Album(row)),
 }).extend({
-  listAlbumsByArtistId: groupWith("artistId"),
+  listAlbumsByArtistId: indexWith("artistId"),
   listAlbumsWithTracks: takeOne(),
 })
 
@@ -70,8 +70,8 @@ const snakeCaseOverrideOnly = createModel({
     listAlbumsWithTracks: mapWith(mapKeysToCamelCase),
   },
 }).extend({
-  listAlbumsByArtistId: groupWith("artistId"),
-  listAlbumsWithTracks: nestWith("albumId", (rows) => {
+  listAlbumsByArtistId: indexWith("artistId"),
+  listAlbumsWithTracks: groupWith("albumId", (rows) => {
     const tracks = rows.map((row) => {
       return new Track({...row, createdAt: row.trackCreatedAt})
     })
@@ -91,8 +91,8 @@ const camelCaseOverrideOnly = createModel({
     listAlbumsWithTracks: (rows) => rows,
   },
 }).extend({
-  listAlbumsByArtistId: groupWith("artistId"),
-  listAlbumsWithTracks: nestWith("albumId", (rows) => {
+  listAlbumsByArtistId: indexWith("artistId"),
+  listAlbumsWithTracks: groupWith("albumId", (rows) => {
     const tracks = rows.map((row) => {
       return new Track({...row, createdAt: row.trackCreatedAt})
     })
@@ -112,8 +112,8 @@ const snakeCaseDefaultAndOverride = createModel({
     listAlbumsWithTracks: mapWith(mapKeysToCamelCase),
   },
 }).extend({
-  listAlbumsByArtistId: groupWith("artistId"),
-  listAlbumsWithTracks: nestWith("albumId", (rows) => {
+  listAlbumsByArtistId: indexWith("artistId"),
+  listAlbumsWithTracks: groupWith("albumId", (rows) => {
     const tracks = rows.map((row) => {
       return new Track({...row, createdAt: row.trackCreatedAt})
     })
@@ -133,8 +133,8 @@ const camelCaseDefaultAndOverride = createModel({
     listAlbumsWithTracks: (rows) => rows,
   },
 }).extend({
-  listAlbumsByArtistId: groupWith("artistId"),
-  listAlbumsWithTracks: nestWith("albumId", (rows) => {
+  listAlbumsByArtistId: indexWith("artistId"),
+  listAlbumsWithTracks: groupWith("albumId", (rows) => {
     const tracks = rows.map((row) => {
       return new Track({...row, createdAt: row.trackCreatedAt})
     })

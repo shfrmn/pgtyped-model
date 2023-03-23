@@ -1,5 +1,3 @@
-import _groupBy from "lodash/groupBy"
-import _mapValues from "lodash/mapValues"
 import {ObjectKey, UnwrapPromise} from "./Utils"
 
 /**
@@ -12,7 +10,7 @@ export type CollectFunction<R, T> = (results: R) => T
  */
 export type CollectResult<F> = F extends CollectFunction<any, infer T>
   ? UnwrapPromise<T>
-  : "CollectResult<T ∉ CollectFunction>"
+  : "CollectResult<F ∉ CollectFunction>"
 
 /**
  * Produces a collect function that returns a single result item,
@@ -41,56 +39,80 @@ export function mapWith<R, T>(
 /**
  *
  */
-type GroupBy<R, K extends keyof R> = CollectFunction<
+function indexBy<R, K extends keyof R>(
+  results: R[],
+  field: K,
+): Record<ObjectKey<R[K]>, R[]> {
+  const resultsByField = {} as Record<ObjectKey<R[K]>, R[]>
+  for (const resultItem of results) {
+    const key = resultItem[field] as ObjectKey<R[K]>
+    resultsByField[key] ||= []
+    resultsByField[key].push(resultItem)
+  }
+  return resultsByField
+}
+
+/**
+ *
+ */
+type IndexBy<R, K extends keyof R> = CollectFunction<
   R[],
   Record<ObjectKey<R[K]>, R[]>
 >
-type GroupByMap<R, K extends keyof R, T> = CollectFunction<
+type IndexByMap<R, K extends keyof R, T> = CollectFunction<
   R[],
   Record<ObjectKey<R[K]>, T>
 >
-type AnyGroupBy<R, K extends keyof R, T> = CollectFunction<
+type AnyIndexBy<R, K extends keyof R, T> = CollectFunction<
   R[],
-  Record<ObjectKey<R[K]>, R[]> | Record<ObjectKey<R[K]>, T>
+  Record<ObjectKey<R[K]>, R[] | T>
 >
 
 /**
  * Produces a collect function that reduces an array of result items
- * into an object, grouping them by the provided field.
+ * into an object, indexing them by the provided field.
  * Optional second argument allows to map each result item.
  */
-export function groupWith<R, K extends keyof R>(field: K): GroupBy<R, K>
-export function groupWith<R, K extends keyof R, T>(
+export function indexWith<R, K extends keyof R>(field: K): IndexBy<R, K>
+export function indexWith<R, K extends keyof R, T>(
   field: K,
-  mapRows: (rows: R[]) => T,
-): GroupByMap<R, K, T>
-export function groupWith<R, K extends keyof R, T>(
+  collect: CollectFunction<R[], T>,
+): IndexByMap<R, K, T>
+export function indexWith<R, K extends keyof R, T>(
   field: K,
-  mapRows?: (rows: R[]) => T,
-): AnyGroupBy<R, K, T> {
-  function groupRows(
-    rows: R[],
-  ): Record<ObjectKey<R[K]>, R[]> | Record<ObjectKey<R[K]>, T> {
-    const rowsByField = _groupBy(rows, field) as Record<ObjectKey<R[K]>, R[]>
-    const mappedRowsByField = mapRows
-      ? (_mapValues(rowsByField, mapRows) as Record<ObjectKey<R[K]>, T>)
-      : rowsByField
-    return mappedRowsByField
+  collect?: CollectFunction<R[], T>,
+): AnyIndexBy<R, K, T> {
+  return function (results: R[]): Record<ObjectKey<R[K]>, R[] | T> {
+    const resultsByField = indexBy(results, field) as Record<
+      ObjectKey<R[K]>,
+      R[] | T
+    >
+    if (!collect) {
+      return resultsByField
+    }
+    for (const key in resultsByField) {
+      resultsByField[key as ObjectKey<R[K]>] = collect(
+        resultsByField[key as ObjectKey<R[K]>] as R[],
+      )
+    }
+    return resultsByField
   }
-  return groupRows
 }
 
 /**
  * Produces a collect function that reduces an array of result items
  * into an array, grouping them by the provided field.
  */
-export function nestWith<R, K extends keyof R, T>(
+export function groupWith<R, K extends keyof R, T>(
   field: K,
-  mapRows: (rows: R[]) => T,
+  collect: CollectFunction<R[], T>,
 ): CollectFunction<R[], T[]> {
-  return function nestRows(rows: R[]): T[] {
-    const rowsByField = _groupBy(rows, field) as Record<K, R[]>
-    const nestedRows = Object.values(rowsByField).map(mapRows)
-    return nestedRows
+  return function (results: R[]): T[] {
+    const resultsByField = indexBy(results, field)
+    const groupedResults: T[] = []
+    for (const key in resultsByField) {
+      groupedResults.push(collect(resultsByField[key as ObjectKey<R[K]>]))
+    }
+    return groupedResults
   }
 }
