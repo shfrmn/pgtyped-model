@@ -15,9 +15,7 @@
   "dependencies": {
     "@pgtyped/cli": "^2.1.0",
     "@pgtyped/runtime": "^2.1.0",
-    "@types/lodash": "^4.14.191",
-    "@types/pg": "^8.6.6",
-    "lodash": "^4.17.21"
+    "@types/pg": "^8.6.6"
   },
   "devDependencies": {
     "@types/tap": "^15.0.8",

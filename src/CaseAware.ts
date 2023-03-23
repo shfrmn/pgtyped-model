@@ -1,6 +1,3 @@
-import toCamelCase from "lodash/camelCase"
-import mapKeys from "lodash/mapKeys"
-
 /**
  *
  */
@@ -28,6 +25,17 @@ export type CaseAware<T, IsCamelCase = false> = IsCamelCase extends false
 /**
  *
  */
+function toCamelCase(s: string): string {
+  return s.replace(/(\w)_(\w)/g, (s) => s[0] + s[2].toUpperCase())
+}
+
+/**
+ *
+ */
 export function mapKeysToCamelCase<T extends object>(obj: T): CamelCaseKeys<T> {
-  return mapKeys(obj, (_, k) => toCamelCase(k)) as CamelCaseKeys<T>
+  const result = {} as Record<string, any>
+  for (let key in obj) {
+    result[toCamelCase(key)] = obj[key]
+  }
+  return result as CamelCaseKeys<T>
 }
