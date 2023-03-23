@@ -6,13 +6,13 @@
       "emitTemplate": "{{dir}}/{{name}}.queries.ts"
     }
   ],
-  "srcDir": "./src/",
+  "srcDir": "./examples/SampleApp",
   "failOnError": false,
   "camelCaseColumnNames": false,
   "db": {
     "host": "localhost",
     "user": "postgres",
-    "dbName": "cloud",
+    "dbName": "pgtyped-model",
     "password": ""
   }
 }
