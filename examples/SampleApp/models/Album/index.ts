@@ -23,6 +23,15 @@ export const AlbumModel = createModel({
       return new AlbumWithTracks({...rows[0], tracks})
     }),
   },
+  onQuery: ({queryName, params, rows, result}) => {
+    // console.table([
+    //   {
+    //     queryName,
+    //     params: JSON.stringify(params),
+    //     rowCount: rows.length,
+    //   },
+    // ])
+  },
 }).extend({
   getAlbum: takeOne(),
   createAlbum: takeOne(),
