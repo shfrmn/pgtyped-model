@@ -2,7 +2,7 @@ import {exec} from "child_process"
 import t from "tap"
 
 t.test("Typecheck", (t) => {
-  exec("tsc -p test --noEmit", (err, stdout, stderr) => {
+  exec("tsc -p test", (err, stdout, stderr) => {
     if (err) {
       t.fail(err.message)
     }
