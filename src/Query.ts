@@ -1,4 +1,5 @@
 import {AnyPgTypedModule, AnyRowType, ParamType} from "./PgTyped"
+import {WrapPromise} from "./Utils"
 
 /**
  * Contains all information about a successful query
@@ -28,7 +29,7 @@ export type OnAnyQuery<QueryModule extends AnyPgTypedModule> = OnQuery<
 /**
  *
  */
-export type QueryFunction<P, T> = (params: P) => Promise<T>
+export type QueryFunction<P, T> = (params: P) => WrapPromise<T>
 
 /**
  *

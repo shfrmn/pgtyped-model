@@ -19,10 +19,11 @@ export type CamelCaseKeys<O extends Record<string, any>> = {
 /**
  *
  */
-export type CaseAware<
-  T extends Record<string, any>,
-  IsCamelCase,
-> = IsCamelCase extends true ? CamelCaseKeys<T> : T
+export type CaseAware<T, IsCamelCase = false> = IsCamelCase extends false
+  ? T
+  : T extends Record<string, any>
+  ? CamelCaseKeys<T>
+  : T
 
 /**
  *

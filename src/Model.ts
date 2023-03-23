@@ -1,8 +1,9 @@
 import {IDatabaseConnection} from "@pgtyped/runtime/lib/tag"
-import {AnyPgTypedModule, AnyRowType, ParamType, RowType} from "./PgTyped"
+import {AnyPgTypedModule, AnyRowType, ParamType, ResultType} from "./PgTyped"
 import {CaseAware, mapKeysToCamelCase} from "./CaseAware"
 import {MapQueryFunction, OnAnyQuery, QueryFunction} from "./Query"
 import {CollectFunction, CollectResult} from "./Collect"
+import {UnwrapPromise, WithVoid} from "./Utils"
 
 /**
  *
@@ -20,40 +21,38 @@ type Model<
 > = {
   [K in keyof M]: MapQueryFunction<
     M[K],
-    K extends keyof CollectOverride
-      ? CollectResult<CollectOverride[K]>
-      : unknown extends DefaultCollectResult
-      ? CollectResult<M[K]>
-      : CollectResult<M[K]> extends Promise<void>
-      ? void
-      : DefaultCollectResult
+    K extends keyof CollectOverride // Empty CollectOverride or when contains matching key
+      ? unknown extends CollectResult<CollectOverride[K]> // CollectOverride is empty
+        ? WithVoid<CollectResult<M[K]>, DefaultCollectResult> // => Base model
+        : CollectResult<CollectOverride[K]> // => CollectOverride
+      : WithVoid<CollectResult<M[K]>, DefaultCollectResult> // => Base model
   >
 }
 
 /**
  * Converts PgTyped query module into `Model`
  */
-type FromPgTyped<QueryModule> = {
+export type FromPgTyped<QueryModule, IsCamelCase> = {
   [K in keyof QueryModule]: QueryFunction<
     ParamType<QueryModule[K]>,
-    RowType<QueryModule[K]>
+    ResultType<QueryModule[K], IsCamelCase>
   >
 }
 
 /**
  *
  */
-function fromPgTypedModule<QueryModule extends AnyPgTypedModule>(
+function fromPgTypedModule<QueryModule extends AnyPgTypedModule, IsCamelCase>(
   queryModule: QueryModule,
   connection: IDatabaseConnection,
-): FromPgTyped<QueryModule> {
+): FromPgTyped<QueryModule, IsCamelCase> {
   const model: Record<string, any> = {}
   for (const queryName in queryModule) {
     model[queryName] = (params: any) => {
       return queryModule[queryName].run(params, connection)
     }
   }
-  return model as FromPgTyped<QueryModule>
+  return model as FromPgTyped<QueryModule, IsCamelCase>
 }
 
 /**
@@ -77,7 +76,7 @@ function extendModel<M extends AnyModel, E extends ExtendOptions<M>>(
   const extendedModel = {} as Record<string, any>
   for (const queryName in model) {
     extendedModel[queryName] = (params: any) => {
-      return model[queryName](params).then((results) => {
+      return model[queryName](params).then((results: any) => {
         return extendModel(results, queryName, params)
       })
     }
@@ -91,7 +90,7 @@ function extendModel<M extends AnyModel, E extends ExtendOptions<M>>(
 type ExtendOptions<M extends AnyModel> = Partial<{
   [K in keyof M]: (
     results: M[K] extends QueryFunction<any, infer T>
-      ? T
+      ? UnwrapPromise<T>
       : "ExtendOptions<M[K] ∉ QueryFunction>",
   ) => any
 }>
@@ -115,14 +114,12 @@ type CollectDefault<
 /**
  *
  */
-type OverrideOptions<
-  QueryModule extends AnyPgTypedModule,
-  IsCamelCase,
-> = Partial<{
-  [K in keyof QueryModule]: (
-    rows: CaseAware<RowType<QueryModule[K]>, IsCamelCase>[],
-  ) => any
-}>
+type OverrideOptions<QueryModule extends AnyPgTypedModule, IsCamelCase> = {
+  [K in keyof QueryModule]?: CollectFunction<
+    ResultType<QueryModule[K], IsCamelCase>,
+    unknown
+  >
+}
 
 /**
  *
@@ -197,9 +194,12 @@ export function createModel<
   QueryModule extends AnyPgTypedModule,
   DefaultCollectResult,
   IsCamelCase extends boolean,
-  CollectOverride extends OverrideOptions<QueryModule, IsCamelCase> = {},
+  CollectOverride extends OverrideOptions<
+    QueryModule,
+    IsCamelCase
+  > = OverrideOptions<QueryModule, IsCamelCase>,
   M extends AnyModel = Model<
-    FromPgTyped<QueryModule>,
+    FromPgTyped<QueryModule, IsCamelCase>,
     DefaultCollectResult,
     CollectOverride
   >,
@@ -214,7 +214,7 @@ export function createModel<
   const baseModel = fromPgTypedModule(options.queries, options.connection)
   const model = extendModel(
     baseModel,
-    (rows, queryName: string, params: any) => {
+    (rows, queryName: keyof QueryModule, params: any) => {
       const caseAwareRows = options.camelCaseColumnNames
         ? rows.map(mapKeysToCamelCase)
         : rows

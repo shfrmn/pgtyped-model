@@ -1,14 +1,6 @@
 import _groupBy from "lodash/groupBy"
 import _mapValues from "lodash/mapValues"
-
-/**
- * Converts any type to a type that can be used as an object key
- */
-type ObjectKey<T> = T extends string | number | symbol
-  ? T
-  : T extends boolean
-  ? "true" | "false"
-  : string
+import {ObjectKey, UnwrapPromise} from "./Utils"
 
 /**
  *
@@ -18,8 +10,8 @@ export type CollectFunction<R, T> = (results: R) => T
 /**
  *
  */
-export type CollectResult<T> = T extends CollectFunction<any, infer T>
-  ? T
+export type CollectResult<F> = F extends CollectFunction<any, infer T>
+  ? UnwrapPromise<T>
   : "CollectResult<T ∉ CollectFunction>"
 
 /**
