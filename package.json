@@ -7,7 +7,7 @@
   "scripts": {
     "postinstall": "yarn build",
     "build": "tsc && pgtyped -c examples/SampleApp/pgtyped.config.json",
-    "test": "tsc -p test --noEmit"
+    "test": "tap --ts -R spec -w test/runtime test/types/types.test.ts"
   },
   "keywords": [],
   "author": "Joseph Shaferman <joseph.shaferman@gmail.com>",
@@ -20,9 +20,14 @@
     "lodash": "^4.17.21"
   },
   "devDependencies": {
+    "@types/tap": "^15.0.8",
+    "@types/uuid": "^9.0.1",
     "pg": "^8.10.0",
     "prettier": "^2.8.4",
-    "typescript": "^5.0.2"
+    "tap": "^16.3.4",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.2",
+    "uuid": "^9.0.0"
   },
   "peerDependencies": {
     "@pgtyped/runtime": "^2.1.0",
@@ -35,5 +40,10 @@
     "semi": false,
     "singleQuote": false,
     "arrowParens": "always"
+  },
+  "tap": {
+    "nyc-arg": [
+      "--exclude=examples/SampleApp/classes"
+    ]
   }
 }

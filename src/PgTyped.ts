@@ -27,7 +27,7 @@ type RowType<Q> = Q extends PreparedQuery<any, infer R>
  *
  */
 export type ResultType<Q, IsCamelCase> = RowType<Q> extends void
-  ? void
+  ? []
   : CaseAware<RowType<Q>, IsCamelCase>[]
 
 /**

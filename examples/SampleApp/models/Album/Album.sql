@@ -1,12 +1,18 @@
-/* @name listAlbums */
+/*
+  @name listAlbums
+  @param artistIds -> (...)
+*/
 SELECT * FROM albums
-WHERE artist_id IN (:artistIds);
+WHERE artist_id IN :artistIds!;
 
 /* @name getAlbum */
 SELECT * FROM albums
-WHERE album_id = :albumId;
+WHERE album_id = :albumId!;
 
-/* @name listAlbumsWithTracks */
+/*
+  @name listAlbumsWithTracks
+  @param albumIds -> (...)
+*/
 SELECT
   a.*,
   t.track_id,
@@ -14,8 +20,8 @@ SELECT
   t.media_url,
   t.created_at AS track_created_at
 FROM albums a
-JOIN tracks t USING (album_id)
-WHERE album_id IN (:albumIds);
+LEFT JOIN tracks t USING (album_id)
+WHERE album_id IN :albumIds!;
 
 /*
   @name createAlbum
@@ -32,9 +38,9 @@ RETURNING *;
 
 /* @name updateAlbum */
 UPDATE albums
-SET cover_art_url = :coverArtUrl
-WHERE album_id = :albumId;
+SET cover_art_url = :coverArtUrl!
+WHERE album_id = :albumId!;
 
 /* @name deleteAlbum */
 DELETE FROM albums
-WHERE album_id = :albumId;
+WHERE album_id = :albumId!;

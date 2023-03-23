@@ -3,7 +3,7 @@ import { PreparedQuery } from '@pgtyped/runtime';
 
 /** 'ListAlbums' parameters type */
 export interface IListAlbumsParams {
-  artistIds?: string | null | void;
+  artistIds: readonly (string)[];
 }
 
 /** 'ListAlbums' return type */
@@ -23,13 +23,13 @@ export interface IListAlbumsQuery {
   result: IListAlbumsResult;
 }
 
-const listAlbumsIR: any = {"usedParamSet":{"artistIds":true},"params":[{"name":"artistIds","required":false,"transform":{"type":"scalar"},"locs":[{"a":41,"b":50}]}],"statement":"SELECT * FROM albums\nWHERE artist_id IN (:artistIds)"};
+const listAlbumsIR: any = {"usedParamSet":{"artistIds":true},"params":[{"name":"artistIds","required":true,"transform":{"type":"array_spread"},"locs":[{"a":40,"b":50}]}],"statement":"SELECT * FROM albums\nWHERE artist_id IN :artistIds!"};
 
 /**
  * Query generated from SQL:
  * ```
  * SELECT * FROM albums
- * WHERE artist_id IN (:artistIds)
+ * WHERE artist_id IN :artistIds!
  * ```
  */
 export const listAlbums = new PreparedQuery<IListAlbumsParams,IListAlbumsResult>(listAlbumsIR);
@@ -37,7 +37,7 @@ export const listAlbums = new PreparedQuery<IListAlbumsParams,IListAlbumsResult>
 
 /** 'GetAlbum' parameters type */
 export interface IGetAlbumParams {
-  albumId?: string | null | void;
+  albumId: string;
 }
 
 /** 'GetAlbum' return type */
@@ -57,13 +57,13 @@ export interface IGetAlbumQuery {
   result: IGetAlbumResult;
 }
 
-const getAlbumIR: any = {"usedParamSet":{"albumId":true},"params":[{"name":"albumId","required":false,"transform":{"type":"scalar"},"locs":[{"a":38,"b":45}]}],"statement":"SELECT * FROM albums\nWHERE album_id = :albumId"};
+const getAlbumIR: any = {"usedParamSet":{"albumId":true},"params":[{"name":"albumId","required":true,"transform":{"type":"scalar"},"locs":[{"a":38,"b":46}]}],"statement":"SELECT * FROM albums\nWHERE album_id = :albumId!"};
 
 /**
  * Query generated from SQL:
  * ```
  * SELECT * FROM albums
- * WHERE album_id = :albumId
+ * WHERE album_id = :albumId!
  * ```
  */
 export const getAlbum = new PreparedQuery<IGetAlbumParams,IGetAlbumResult>(getAlbumIR);
@@ -71,7 +71,7 @@ export const getAlbum = new PreparedQuery<IGetAlbumParams,IGetAlbumResult>(getAl
 
 /** 'ListAlbumsWithTracks' parameters type */
 export interface IListAlbumsWithTracksParams {
-  albumIds?: string | null | void;
+  albumIds: readonly (string)[];
 }
 
 /** 'ListAlbumsWithTracks' return type */
@@ -95,7 +95,7 @@ export interface IListAlbumsWithTracksQuery {
   result: IListAlbumsWithTracksResult;
 }
 
-const listAlbumsWithTracksIR: any = {"usedParamSet":{"albumIds":true},"params":[{"name":"albumIds","required":false,"transform":{"type":"scalar"},"locs":[{"a":158,"b":166}]}],"statement":"SELECT\n  a.*,\n  t.track_id,\n  t.track_name,\n  t.media_url,\n  t.created_at AS track_created_at\nFROM albums a\nJOIN tracks t USING (album_id)\nWHERE album_id IN (:albumIds)"};
+const listAlbumsWithTracksIR: any = {"usedParamSet":{"albumIds":true},"params":[{"name":"albumIds","required":true,"transform":{"type":"array_spread"},"locs":[{"a":162,"b":171}]}],"statement":"SELECT\n  a.*,\n  t.track_id,\n  t.track_name,\n  t.media_url,\n  t.created_at AS track_created_at\nFROM albums a\nLEFT JOIN tracks t USING (album_id)\nWHERE album_id IN :albumIds!"};
 
 /**
  * Query generated from SQL:
@@ -107,8 +107,8 @@ const listAlbumsWithTracksIR: any = {"usedParamSet":{"albumIds":true},"params":[
  *   t.media_url,
  *   t.created_at AS track_created_at
  * FROM albums a
- * JOIN tracks t USING (album_id)
- * WHERE album_id IN (:albumIds)
+ * LEFT JOIN tracks t USING (album_id)
+ * WHERE album_id IN :albumIds!
  * ```
  */
 export const listAlbumsWithTracks = new PreparedQuery<IListAlbumsWithTracksParams,IListAlbumsWithTracksResult>(listAlbumsWithTracksIR);
@@ -156,8 +156,8 @@ export const createAlbum = new PreparedQuery<ICreateAlbumParams,ICreateAlbumResu
 
 /** 'UpdateAlbum' parameters type */
 export interface IUpdateAlbumParams {
-  albumId?: string | null | void;
-  coverArtUrl?: string | null | void;
+  albumId: string;
+  coverArtUrl: string;
 }
 
 /** 'UpdateAlbum' return type */
@@ -169,14 +169,14 @@ export interface IUpdateAlbumQuery {
   result: IUpdateAlbumResult;
 }
 
-const updateAlbumIR: any = {"usedParamSet":{"coverArtUrl":true,"albumId":true},"params":[{"name":"coverArtUrl","required":false,"transform":{"type":"scalar"},"locs":[{"a":34,"b":45}]},{"name":"albumId","required":false,"transform":{"type":"scalar"},"locs":[{"a":64,"b":71}]}],"statement":"UPDATE albums\nSET cover_art_url = :coverArtUrl\nWHERE album_id = :albumId"};
+const updateAlbumIR: any = {"usedParamSet":{"coverArtUrl":true,"albumId":true},"params":[{"name":"coverArtUrl","required":true,"transform":{"type":"scalar"},"locs":[{"a":34,"b":46}]},{"name":"albumId","required":true,"transform":{"type":"scalar"},"locs":[{"a":65,"b":73}]}],"statement":"UPDATE albums\nSET cover_art_url = :coverArtUrl!\nWHERE album_id = :albumId!"};
 
 /**
  * Query generated from SQL:
  * ```
  * UPDATE albums
- * SET cover_art_url = :coverArtUrl
- * WHERE album_id = :albumId
+ * SET cover_art_url = :coverArtUrl!
+ * WHERE album_id = :albumId!
  * ```
  */
 export const updateAlbum = new PreparedQuery<IUpdateAlbumParams,IUpdateAlbumResult>(updateAlbumIR);
@@ -184,7 +184,7 @@ export const updateAlbum = new PreparedQuery<IUpdateAlbumParams,IUpdateAlbumResu
 
 /** 'DeleteAlbum' parameters type */
 export interface IDeleteAlbumParams {
-  albumId?: string | null | void;
+  albumId: string;
 }
 
 /** 'DeleteAlbum' return type */
@@ -196,13 +196,13 @@ export interface IDeleteAlbumQuery {
   result: IDeleteAlbumResult;
 }
 
-const deleteAlbumIR: any = {"usedParamSet":{"albumId":true},"params":[{"name":"albumId","required":false,"transform":{"type":"scalar"},"locs":[{"a":36,"b":43}]}],"statement":"DELETE FROM albums\nWHERE album_id = :albumId"};
+const deleteAlbumIR: any = {"usedParamSet":{"albumId":true},"params":[{"name":"albumId","required":true,"transform":{"type":"scalar"},"locs":[{"a":36,"b":44}]}],"statement":"DELETE FROM albums\nWHERE album_id = :albumId!"};
 
 /**
  * Query generated from SQL:
  * ```
  * DELETE FROM albums
- * WHERE album_id = :albumId
+ * WHERE album_id = :albumId!
  * ```
  */
 export const deleteAlbum = new PreparedQuery<IDeleteAlbumParams,IDeleteAlbumResult>(deleteAlbumIR);

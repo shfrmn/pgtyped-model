@@ -29,6 +29,6 @@ export type UnwrapPromise<P> = P extends Promise<infer T> ? T : P
  */
 export type WithVoid<MaybeVoid, IfNotVoid> = unknown extends IfNotVoid
   ? MaybeVoid
-  : MaybeVoid extends void | Promise<void>
+  : MaybeVoid extends void | Promise<void> | [] | Promise<[]>
   ? MaybeVoid
   : IfNotVoid

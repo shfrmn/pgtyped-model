@@ -22,7 +22,7 @@ type Model<
   [K in keyof M]: MapQueryFunction<
     M[K],
     K extends keyof CollectOverride // Empty CollectOverride or when contains matching key
-      ? unknown extends CollectResult<CollectOverride[K]> // CollectOverride is empty
+      ? unknown extends CollectResult<CollectOverride[K]> // Empty CollectOverride
         ? WithVoid<CollectResult<M[K]>, DefaultCollectResult> // => Base model
         : CollectResult<CollectOverride[K]> // => CollectOverride
       : WithVoid<CollectResult<M[K]>, DefaultCollectResult> // => Base model
