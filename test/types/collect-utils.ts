@@ -1,6 +1,7 @@
 import {
   createModel,
   mapWith,
+  mapWithEntity,
   groupWith,
   indexWith,
   takeOne,
@@ -49,7 +50,7 @@ const camelCaseDefaultOnly = createModel({
     listAlbumsByArtistId: queries.listAlbums,
   },
   camelCaseColumnNames: true,
-  collectDefault: mapWith((row) => new Album(row)),
+  collectDefault: mapWithEntity(Album),
 }).extend({
   listAlbumsByArtistId: indexWith("artistId"),
   listAlbumsWithTracks: takeOne(),
@@ -87,7 +88,7 @@ const camelCaseOverrideOnly = createModel({
   },
   camelCaseColumnNames: true,
   collect: {
-    listAlbumsByArtistId: mapWith((row) => new Album(row)),
+    listAlbumsByArtistId: mapWithEntity(Album),
     listAlbumsWithTracks: (rows) => rows,
   },
 }).extend({
@@ -128,7 +129,7 @@ const camelCaseDefaultAndOverride = createModel({
     listAlbumsByArtistId: queries.listAlbums,
   },
   camelCaseColumnNames: true,
-  collectDefault: mapWith((row) => new Album(row)),
+  collectDefault: mapWithEntity(Album),
   collect: {
     listAlbumsWithTracks: (rows) => rows,
   },
