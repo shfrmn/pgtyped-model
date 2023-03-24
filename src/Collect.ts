@@ -39,6 +39,17 @@ export function mapWith<R, T>(
 /**
  *
  */
+export function mapWithEntity<R, T>(Entity: {
+  new (data: R): T
+}): CollectFunction<R[], T[]> {
+  return function (results: R[]): T[] {
+    return results.map((result) => new Entity(result))
+  }
+}
+
+/**
+ *
+ */
 function indexBy<R, K extends keyof R>(
   results: R[],
   field: K,
@@ -53,40 +64,16 @@ function indexBy<R, K extends keyof R>(
 }
 
 /**
- *
- */
-type IndexBy<R, K extends keyof R> = CollectFunction<
-  R[],
-  Record<ObjectKey<R[K]>, R[]>
->
-type IndexByMap<R, K extends keyof R, T> = CollectFunction<
-  R[],
-  Record<ObjectKey<R[K]>, T>
->
-type AnyIndexBy<R, K extends keyof R, T> = CollectFunction<
-  R[],
-  Record<ObjectKey<R[K]>, R[] | T>
->
-
-/**
  * Produces a collect function that reduces an array of result items
  * into an object, indexing them by the provided field.
  * Optional second argument allows to map each result item.
  */
-export function indexWith<R, K extends keyof R>(field: K): IndexBy<R, K>
-export function indexWith<R, K extends keyof R, T>(
-  field: K,
-  collect: CollectFunction<R[], T>,
-): IndexByMap<R, K, T>
-export function indexWith<R, K extends keyof R, T>(
+export function indexWith<R, K extends keyof R, T = R[]>(
   field: K,
   collect?: CollectFunction<R[], T>,
-): AnyIndexBy<R, K, T> {
-  return function (results: R[]): Record<ObjectKey<R[K]>, R[] | T> {
-    const resultsByField = indexBy(results, field) as Record<
-      ObjectKey<R[K]>,
-      R[] | T
-    >
+): CollectFunction<R[], Record<ObjectKey<R[K]>, T>> {
+  return function (results: R[]): Record<ObjectKey<R[K]>, T> {
+    const resultsByField = indexBy(results, field) as Record<ObjectKey<R[K]>, T>
     if (!collect) {
       return resultsByField
     }
@@ -103,12 +90,15 @@ export function indexWith<R, K extends keyof R, T>(
  * Produces a collect function that reduces an array of result items
  * into an array, grouping them by the provided field.
  */
-export function groupWith<R, K extends keyof R, T>(
+export function groupWith<R, K extends keyof R, T = R[]>(
   field: K,
-  collect: CollectFunction<R[], T>,
+  collect?: CollectFunction<R[], T>,
 ): CollectFunction<R[], T[]> {
   return function (results: R[]): T[] {
     const resultsByField = indexBy(results, field)
+    if (!collect) {
+      return Object.values(resultsByField)
+    }
     const groupedResults: T[] = []
     for (const key in resultsByField) {
       groupedResults.push(collect(resultsByField[key as ObjectKey<R[K]>]))

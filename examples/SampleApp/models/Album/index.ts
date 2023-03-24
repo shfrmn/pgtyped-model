@@ -1,8 +1,9 @@
 import {
   createModel,
-  mapWith,
-  indexWith,
   groupWith,
+  indexWith,
+  mapWith,
+  mapWithEntity,
   takeOne,
 } from "../../../../src"
 import {pool} from "../connection"
@@ -13,10 +14,10 @@ export const AlbumModel = createModel({
   connection: pool,
   queries: {
     ...queries,
-    listAlbumsByArtistId: queries.listAlbums,
+    listTitlesByArtistId: queries.listAlbums,
   },
   camelCaseColumnNames: true,
-  collectDefault: mapWith((row) => new Album(row)),
+  collectDefault: mapWithEntity(Album),
   collect: {
     listAlbumsWithTracks: groupWith("albumId", (rows) => {
       const tracks = rows.map((row) => new Track(row))
@@ -35,5 +36,8 @@ export const AlbumModel = createModel({
 }).extend({
   getAlbum: takeOne(),
   createAlbum: takeOne(),
-  listAlbumsByArtistId: indexWith("artistId"),
+  listTitlesByArtistId: indexWith(
+    "artistId",
+    mapWith((album) => album.albumName),
+  ),
 })
