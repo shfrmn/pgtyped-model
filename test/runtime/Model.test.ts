@@ -66,7 +66,7 @@ t.test("AlbumModel", async (t) => {
   t.test("Get grouped rows", async (t) => {
     t.test(".createAlbum() returns a new row", async (t) => {
       const artistIds = albums.map(({artist_id}) => artist_id)
-      const result = await AlbumModel.listAlbumsByArtistId({artistIds})
+      const result = await AlbumModel.listTitlesByArtistId({artistIds})
       t.equal(typeof result, "object", "Returns an object")
       t.equal(
         Object.keys(result).length,
@@ -74,8 +74,8 @@ t.test("AlbumModel", async (t) => {
         "With every artistId as a key",
       )
       t.ok(
-        Object.values(result).every((albums) => Array.isArray(albums)),
-        "With every value as an array of one album",
+        Object.values(result).every((titles) => Array.isArray(titles)),
+        "With every value as an array",
       )
     })
   })
