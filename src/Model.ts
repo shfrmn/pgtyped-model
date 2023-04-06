@@ -232,7 +232,7 @@ export function createModel<
 
   function extend<O extends ExtendOptions<M>>(options: O): ExtendedModel<M, O> {
     return extendModel(model, (rows, queryName) => {
-      return options[queryName]?.(rows) || rows
+      return options[queryName] ? options[queryName]!(rows) : rows
     })
   }
 
